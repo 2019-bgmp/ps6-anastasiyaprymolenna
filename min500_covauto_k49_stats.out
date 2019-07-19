@@ -1,0 +1,11 @@
+Input file for the Velvet run and statistics:	min500_covauto_k49_contigs.fa
+K-mer size used in contig assembly:	49
+Number of contigs:	626
+Maximum contig length:	60
+Mean contig length:	60.0
+Total length of the genome assembly across the contigs:	37560
+Mean depth of coverage for the contigs:	49.58267486421724
+N50 of the contif assembly:	60
+
+# Contig length	Number of contigs in this category
+0	627
