@@ -1,0 +1,23 @@
+1. Describe how the assembly changes with different k-mer values using the assembly statistics you have collected. 
+How does the contig length distribution change? 
+
+	As we increased the kmer the number of contigs got fewer, but their N50 got larger. 
+	Based on looking at the graphs, the visual distribution of contig lengths got more 
+	spread out as there were larger contigs present in the graphs of larger kmers. 
+
+2. How does an increased coverage cutoff affect the assembly? 
+What is happening to the de Bruijin graph when you change the value of this parameter? 
+How does velvet calculate its value for ‘auto’? 
+
+	Comparing to the unmodified k49 distribution, any specification of coverage seems to optimize assembly.
+	As the coverage increased, the max contig size got much smaller , probably in an attempt to assemble more reads.
+	But although the max is smaller the mean and N50 are greater. This indicates that the assembled reads are optimized 
+	to fit better into the assembly and assemble end to end in a more formated fashion.
+	The auto coverage cutoff seems to be very low as the number of contigs present was more than the 20x and the mean 
+	contig length was less.
+
+3. How does increasing minimum contig length affect your contig length distribution and N50?
+
+	Increasing the minimum does exactly as one would expect. It obviously increases the N50 because, and because we are working 
+	with generally larger contigs the mean is also increased. However the exlusion of shorter contigs drastically drops the ammount
+	of contigs we can work with in the assembly, and the coverage follows the drop in turn. 
