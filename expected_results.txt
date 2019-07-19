@@ -1,0 +1,11 @@
+Unit test expected results:
+
+Number of contigs:	3
+Maximum contig length:	10
+Mean contig length:	10
+Total length of the genome assembly across the contigs:	30
+Mean depth of coverage for the contigs:	7.767
+N50 of the contif assembly:	10
+
+# Contig length	Number of contigs in this category
+0	3
