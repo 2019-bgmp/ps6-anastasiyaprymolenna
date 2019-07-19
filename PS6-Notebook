@@ -1,0 +1,155 @@
+PS6 Lab Notebook
+20190717 -------------------------------------------------------------------------
+PART 1) contig length distribution
+	$ ./contig_len.py -f contigs.oneline.fa -k 49 -o test.out
+1. Make contig fasta file have sequence on one line
+	$ awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' < test.fa > mod_test.fa
+2. Pull out kmer length and coverage values from def line
+	How do we skip over occurence of a match for the patten if we want to get to the secodn occurence of a pattern?
+		answer: combine it into a larger pattern and strip off the excess
+	string length = klen+48 (assuming kmer length is 49 
+3. python has sum() function to get the mean
+4. Calculate the mean depth of coverage for the contigs
+	Summ the floats from the end of the header and divide by total number of contigs
+5. Calculate N50
+	wrote def function cause it seemed like something I will want to claculate frequently with assemblies:
+def calculate_N50(list_of_contig_len):
+        total_genome_len = sum(list_of_contig_len)
+        sorted_len = sorted(list_of_contig_len, reverse = True)
+        halfway = total_genome_len/2
+        sum_of_len = 0
+        break_index = 0
+        N50 = 0
+        while sum_of_len <= halfway:
+                sum_of_len += sorted_len[break_index]
+                break_index += 1
+        if sum_of_len == halfway:
+                N50 = sorted_len[break_index]
+        elif sum_of_len > halfway:
+                N50 = sorted_len[break_index-1]
+        return(N50)
+#The N50 for the contigs.fa set was 6818
+
+20190718------------------------------------------------------------------------------------
+6. bin the contig lengths in bins of 100bp
+	Can we bin with a range defining the bin limits? YES
+WRITE ALL OUTPUT TO A FILE
+
+PART 2: Velvet -----------------------------------------------------------------------------	
+Velvet Manual: https://www.ebi.ac.uk/~zerbino/velvet/Manual.pdf
+First, install Velvet: 
+	% conda activate bgmp_py3 
+	% conda install velvet -c bioconda 
+	% velvetg
+
+Note that the bioconda recipe for building velvet 
+found here: https://github.com/bioconda/bioconda-recipes/blob/master/recipes/velvet/build.sh
+specifies several compile-time options that are critical:  
+• MAXKMERLENGTH=50 
+• OPENMP=1 
+• LONGSEQUENCES=1
+
+USE SLURM SCRIPTS TO DO VELVET ON HPC
+
+find the data here:
+        /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1
+        /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 
+	/projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched 
+
+Our fosmid library is comprised of 50 fosmids, each (approximately) 40 Kb long. How many total nt should be in this fosmid library? 200 K nucleotides
+        equation: coverage = number of reads * length of reads / genome length <- the genome length can be estimated from a closely related organism
+        	THIS IS A SHORT CUT (# of Nucleotides / genome length = coverage) B/C 'length of reads' is weird nomenclature
+	equation: kmer coverage = coverage * (length of reads - kmer length(size) +1) / kmer length(size)
+		TIP: use average read length instead of 'length of reads'
+1) Calculate the expected coverage
+	python script will take the three files and give back coverage
+	./exp_cov.py -f1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 -f2 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -f3 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched -g 200000
+	OUTPUT: 1010.880825
+2) Calculate expected K-mer coverage 
+	31-mer
+	./exp_cov.py -f1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 -f2 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -f3 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched -g 200000 -k 31
+The expected coverage is  1010.880825
+The k-mer coverage is  611.45094
+	41-mer
+	./exp_cov.py -f1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 -f2 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -f3 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched -g 200000 -k 41
+The expected coverage is  1010.880825
+The k-mer coverage is  482.6025900000001
+	49-mer
+	./exp_cov.py -f1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 -f2 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -f3 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched -g 200000 -k 49
+The expected coverage is  1010.880825
+The k-mer coverage is  379.52391000000006
+
+3) Run velveth with k-mer sizes of 31, 41, and 49. 
+	first two files are shortPaired, unmatched is short reads
+	/usr/bin/time -v velveth h31_output_directory/ 31 -fastq -shortPaired /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -short /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched
+	/usr/bin/time -v velveth h41_output_directory/ 41 -fastq -shortPaired /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -short /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched
+	/usr/bin/time -v velveth h49_output_directory/ 49 -fastq -shortPaired /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_1 /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq_2 -short /projects/bgmp/shared/Bi621/800_3_PE5_interleaved.fq.unmatched
+
+	User time (seconds): 70.01
+        System time (seconds): 2.04
+        Percent of CPU this job got: 340%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:21.14
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 732480
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 526291
+        Voluntary context switches: 854
+        Involuntary context switches: 642
+
+4) Run velvetg with k-mer sizes of 31, 41, and 49
+	velvetg run with the output from velveth acting as the input
+	/usr/bin/time -v velvetg ../srunVELVETH/h31_output_directory/
+	/usr/bin/time -v velvetg ../srunVELVETH/h41_output_directory/
+	/usr/bin/time -v velvetg ../srunVELVETH/h49_output_directory/ 
+	
+	Command being timed: "velvetg ../srunVELVETH/h31_output_directory/"
+        User time (seconds): 78.21
+        System time (seconds): 0.96
+        Percent of CPU this job got: 287%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:27.55
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 496696
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 345903
+        Voluntary context switches: 406
+	
+	OUTPUT contigs.fa and stats.txt into the velveth directories
+	change name before running velvetg again
+
+5) Running coverage cutoff
+	word of caution: I changed my commands in the velvetg.srun so the error and out files will ne rewritten from their output for
+	With a k-mer size of 49, adjust the coverage cutoff to 20x, 60x, and ‘auto’. Again, assay your results with your code
+	/usr/bin/time -v velvetg ../h49_output_directory/ -cov_cutoff auto
+	/usr/bin/time -v velvetg ../h49_output_directory/ -cov_cutoff 20
+	/usr/bin/time -v velvetg ../h49_output_directory/ -cov_cutoff 60
+	WARNING: run each of these separately and convert the names of the contig files between runs or the contig file will be rewritten
+
+	Command being timed: "velvetg ../h49_output_directory/ -cov_cutoff auto"
+        User time (seconds): 3.27
+        System time (seconds): 0.52
+        Percent of CPU this job got: 99%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 0:03.81
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 471832
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 188228
+        Voluntary context switches: 29
+        Involuntary context switches: 7
+
+6) Finally, adjust the minimum contig length to 500bp (with k-mer size of 49 and coverage cutoff ‘auto’) and again, assay your result
+	word of caution: I changed my velvet g SLURM script again so the err and out files will be overwritten
+	
+PLOT with matplotlib
+
